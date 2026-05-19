@@ -43,33 +43,33 @@ Key design decisions:
 ## 🧱 Architecture
 ```mermaid
 flowchart TB
-    Client[Loan App Client\n(gRPC / REST via gateway)]
+    Client[Loan App Client<br>gRPC / REST via gateway]
     
     subgraph Scheduler_Group [gRPC Scheduler Service]
-        Scheduler[Go gRPC Server\n• Unary Submit\n• Bidirectional Stream]
-        Interceptors[Interceptors\n• Auth (mTLS+JWT)\n• Logging\n• Rate limit]
+        Scheduler[Go gRPC Server<br>• Unary Submit<br>• Bidirectional Stream]
+        Interceptors[Interceptors<br>• Auth mTLS+JWT<br>• Logging<br>• Rate limit]
     end
     
     subgraph Queue_Group [Message Broker]
-        Redis[(Redis\n• Priority Queues: high/standard\n• Pub/Sub for progress)]
+        Redis[(Redis<br>• Priority Queues: high/standard<br>• Pub/Sub for progress)]
     end
     
     subgraph Worker_Group [Worker Pool]
-        Worker1[Worker 1\nOCR Tesseract]
-        Worker2[Worker 2\nValidation]
-        Worker3[Worker 3\nCredit Bureau API]
+        Worker1[Worker 1<br>OCR Tesseract]
+        Worker2[Worker 2<br>Validation]
+        Worker3[Worker 3<br>Credit Bureau API]
     end
     
     subgraph Storage_Group [Persistence]
-        PG[(PostgreSQL\n• tasks state\n• audit log)]
+        PG[(PostgreSQL<br>• tasks state<br>• audit log)]
     end
     
-    Client -->|1. SubmitApplication <I>unary</I>| Scheduler
+    Client -->|1. SubmitApplication unary| Scheduler
     Scheduler -->|2. Store task PENDING| PG
     Scheduler -->|3. Push task ID to queue| Redis
     Scheduler -->|4. Return task_id| Client
     
-    Client <-->|5. Open bidirectional stream\nTrackProgress / Cancel| Scheduler
+    Client <-->|5. Open bidirectional stream<br>TrackProgress / Cancel| Scheduler
     
     Redis -->|6. Claim task| Worker1
     Worker1 -->|7. Update progress via Pub/Sub| Redis
@@ -84,6 +84,7 @@ flowchart TB
     style Redis fill:#ffb,stroke:#333
     style PG fill:#dfd,stroke:#333
 ```
+
 
 
 **Data flow:**
