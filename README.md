@@ -79,12 +79,12 @@ flowchart TB
     Worker1 --> Worker2 --> Worker3
     Worker3 -->|9. Store final result| PG
     
-    style Client fill:#f9f,stroke:#333
-    style Scheduler fill:#bbf,stroke:#333
-    style Redis fill:#ffb,stroke:#333
-    style PG fill:#dfd,stroke:#333
+    %% High-Contrast Theme Styling (Works for Dark & Light Mode)
+    style Client fill:#312E81,stroke:#4338CA,stroke-width:2px,color:#FFFFFF
+    style Scheduler fill:#1E3A8A,stroke:#2563EB,stroke-width:2px,color:#FFFFFF
+    style Redis fill:#78350F,stroke:#D97706,stroke-width:2px,color:#FFFFFF
+    style PG fill:#064E3B,stroke:#059669,stroke-width:2px,color:#FFFFFF
 ```
-
 
 
 **Data flow:**
