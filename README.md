@@ -52,17 +52,7 @@ Key decisions:
 ## 🧱 Architecture
 
 ```mermaid
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'primaryColor': 'var(--color-canvas-subtle)',
-    'primaryTextColor': 'var(--color-fg-default)',
-    'primaryBorderColor': 'var(--color-border-default)',
-    'lineColor': 'var(--color-accent-fg)',
-    'secondaryColor': 'var(--color-neutral-subtle)',
-    'tertiaryColor': 'var(--color-canvas-default)'
-  }
-}}%%
+%%{init: { 'theme': 'dark', 'config': { 'themeCSS': '@media (prefers-color-scheme: light) { .node rect, .node circle, .node polygon, .node path { fill: #f6f8fa !important; stroke: #d0d7de !important; } .node .label { color: #24292f !important; } .edgePath .path { stroke: #57606a !important; } .edgeLabel rect { fill: #ffffff !important; } .cluster rect { fill: #f6f8fa !important; stroke: #d0d7de !important; } }' }}}%%
 graph TD
     Client([Loan Officer Client]) -->|1. Submit Application| Scheduler
 
@@ -95,11 +85,14 @@ graph TD
 
     Client -.->|9. Cancel| StreamAPI
 
-    %% Dynamic Contrast Styling %%
-    style Client fill:var(--color-accent-subtle),stroke:var(--color-accent-fg),stroke-width:2px
-    style Postgres fill:var(--color-done-subtle),stroke:var(--color-done-fg),stroke-width:1px
-    style Redis fill:var(--color-attention-subtle),stroke:var(--color-attention-fg),stroke-width:1px
+    %% Safe Contrast Styling %%
+    classDef clientNode fill:#ddf4ff,stroke:#0969da,stroke-width:2px,color:#0969da;
+    classDef dbNode fill:#dafbe1,stroke:#1a7f37,stroke-width:1px,color:#1a7f37;
+    classDef queueNode fill:#fff8c5,stroke:#9a6700,stroke-width:1px,color:#9a6700;
 
+    class Client clientNode;
+    class Postgres dbNode;
+    class Redis queueNode;
 ```
 
 **Data flow:**
