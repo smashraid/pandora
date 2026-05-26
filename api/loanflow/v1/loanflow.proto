@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package loanflow.v1;
+
+option go_package = "github.com/smashraid/pandora/api/loanflow/v1";
+
+service LoanService {
+  rpc SubmitApplication(SubmitRequest) returns (SubmitResponse);
+}
+
+message SubmitRequest {
+  string application_id = 1;
+}
+
+message SubmitResponse {
+  string task_id = 1;
+}
