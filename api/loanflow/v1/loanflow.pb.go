@@ -109,6 +109,126 @@ func (x *SubmitResponse) GetTaskId() string {
 	return ""
 }
 
+type TrackRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Cancel        bool                   `protobuf:"varint,2,opt,name=cancel,proto3" json:"cancel,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TrackRequest) Reset() {
+	*x = TrackRequest{}
+	mi := &file_loanflow_v1_loanflow_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrackRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrackRequest) ProtoMessage() {}
+
+func (x *TrackRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_loanflow_v1_loanflow_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrackRequest.ProtoReflect.Descriptor instead.
+func (*TrackRequest) Descriptor() ([]byte, []int) {
+	return file_loanflow_v1_loanflow_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *TrackRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *TrackRequest) GetCancel() bool {
+	if x != nil {
+		return x.Cancel
+	}
+	return false
+}
+
+type ProgressEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Step          string                 `protobuf:"bytes,2,opt,name=step,proto3" json:"step,omitempty"`        // e.g., "OCR", "Validation", "CreditCheck", "Done"
+	Percent       int32                  `protobuf:"varint,3,opt,name=percent,proto3" json:"percent,omitempty"` // 0-100
+	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`  // human-readable status
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProgressEvent) Reset() {
+	*x = ProgressEvent{}
+	mi := &file_loanflow_v1_loanflow_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProgressEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProgressEvent) ProtoMessage() {}
+
+func (x *ProgressEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_loanflow_v1_loanflow_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProgressEvent.ProtoReflect.Descriptor instead.
+func (*ProgressEvent) Descriptor() ([]byte, []int) {
+	return file_loanflow_v1_loanflow_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ProgressEvent) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *ProgressEvent) GetStep() string {
+	if x != nil {
+		return x.Step
+	}
+	return ""
+}
+
+func (x *ProgressEvent) GetPercent() int32 {
+	if x != nil {
+		return x.Percent
+	}
+	return 0
+}
+
+func (x *ProgressEvent) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_loanflow_v1_loanflow_proto protoreflect.FileDescriptor
 
 const file_loanflow_v1_loanflow_proto_rawDesc = "" +
@@ -117,9 +237,18 @@ const file_loanflow_v1_loanflow_proto_rawDesc = "" +
 	"\rSubmitRequest\x12%\n" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\")\n" +
 	"\x0eSubmitResponse\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId2[\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"?\n" +
+	"\fTrackRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x16\n" +
+	"\x06cancel\x18\x02 \x01(\bR\x06cancel\"p\n" +
+	"\rProgressEvent\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
+	"\x04step\x18\x02 \x01(\tR\x04step\x12\x18\n" +
+	"\apercent\x18\x03 \x01(\x05R\apercent\x12\x18\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage2\xa7\x01\n" +
 	"\vLoanService\x12L\n" +
-	"\x11SubmitApplication\x12\x1a.loanflow.v1.SubmitRequest\x1a\x1b.loanflow.v1.SubmitResponseB.Z,github.com/smashraid/pandora/api/loanflow/v1b\x06proto3"
+	"\x11SubmitApplication\x12\x1a.loanflow.v1.SubmitRequest\x1a\x1b.loanflow.v1.SubmitResponse\x12J\n" +
+	"\rTrackProgress\x12\x19.loanflow.v1.TrackRequest\x1a\x1a.loanflow.v1.ProgressEvent(\x010\x01B.Z,github.com/smashraid/pandora/api/loanflow/v1b\x06proto3"
 
 var (
 	file_loanflow_v1_loanflow_proto_rawDescOnce sync.Once
@@ -133,16 +262,20 @@ func file_loanflow_v1_loanflow_proto_rawDescGZIP() []byte {
 	return file_loanflow_v1_loanflow_proto_rawDescData
 }
 
-var file_loanflow_v1_loanflow_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_loanflow_v1_loanflow_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_loanflow_v1_loanflow_proto_goTypes = []any{
 	(*SubmitRequest)(nil),  // 0: loanflow.v1.SubmitRequest
 	(*SubmitResponse)(nil), // 1: loanflow.v1.SubmitResponse
+	(*TrackRequest)(nil),   // 2: loanflow.v1.TrackRequest
+	(*ProgressEvent)(nil),  // 3: loanflow.v1.ProgressEvent
 }
 var file_loanflow_v1_loanflow_proto_depIdxs = []int32{
 	0, // 0: loanflow.v1.LoanService.SubmitApplication:input_type -> loanflow.v1.SubmitRequest
-	1, // 1: loanflow.v1.LoanService.SubmitApplication:output_type -> loanflow.v1.SubmitResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: loanflow.v1.LoanService.TrackProgress:input_type -> loanflow.v1.TrackRequest
+	1, // 2: loanflow.v1.LoanService.SubmitApplication:output_type -> loanflow.v1.SubmitResponse
+	3, // 3: loanflow.v1.LoanService.TrackProgress:output_type -> loanflow.v1.ProgressEvent
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -159,7 +292,7 @@ func file_loanflow_v1_loanflow_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_loanflow_v1_loanflow_proto_rawDesc), len(file_loanflow_v1_loanflow_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

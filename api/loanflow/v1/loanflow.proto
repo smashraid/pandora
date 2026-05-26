@@ -6,6 +6,7 @@ option go_package = "github.com/smashraid/pandora/api/loanflow/v1";
 
 service LoanService {
   rpc SubmitApplication(SubmitRequest) returns (SubmitResponse);
+  rpc TrackProgress(stream TrackRequest) returns (stream ProgressEvent);
 }
 
 message SubmitRequest {
@@ -14,4 +15,16 @@ message SubmitRequest {
 
 message SubmitResponse {
   string task_id = 1;
+}
+
+message TrackRequest {
+  string task_id = 1;
+  bool cancel = 2;
+}
+
+message ProgressEvent {
+  string task_id = 1;
+  string step = 2; // e.g., "OCR", "Validation", "CreditCheck", "Done"
+  int32 percent = 3; // 0-100
+  string message = 4; // human-readable status
 }

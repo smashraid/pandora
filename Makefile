@@ -48,3 +48,15 @@ help:
 	@echo "  grpcurl    - Call the SubmitApplication endpoint"
 	@echo "  deps       - Install required Go tools and dependencies"
 	@echo "  help       - Show this help message"
+
+.PHONY: client
+client:
+	@echo "Running gRPC client..."
+	go run cmd/client/main.go
+
+.PHONY: test-stream
+test-stream: run
+	@echo "Starting server in background..."
+	@sleep 2
+	@echo "Running client..."
+	go run cmd/client/main.go	

@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	LoanService_SubmitApplication_FullMethodName = "/loanflow.v1.LoanService/SubmitApplication"
+	LoanService_TrackProgress_FullMethodName     = "/loanflow.v1.LoanService/TrackProgress"
 )
 
 // LoanServiceClient is the client API for LoanService service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LoanServiceClient interface {
 	SubmitApplication(ctx context.Context, in *SubmitRequest, opts ...grpc.CallOption) (*SubmitResponse, error)
+	TrackProgress(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[TrackRequest, ProgressEvent], error)
 }
 
 type loanServiceClient struct {
@@ -47,11 +49,25 @@ func (c *loanServiceClient) SubmitApplication(ctx context.Context, in *SubmitReq
 	return out, nil
 }
 
+func (c *loanServiceClient) TrackProgress(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[TrackRequest, ProgressEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &LoanService_ServiceDesc.Streams[0], LoanService_TrackProgress_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[TrackRequest, ProgressEvent]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type LoanService_TrackProgressClient = grpc.BidiStreamingClient[TrackRequest, ProgressEvent]
+
 // LoanServiceServer is the server API for LoanService service.
 // All implementations must embed UnimplementedLoanServiceServer
 // for forward compatibility.
 type LoanServiceServer interface {
 	SubmitApplication(context.Context, *SubmitRequest) (*SubmitResponse, error)
+	TrackProgress(grpc.BidiStreamingServer[TrackRequest, ProgressEvent]) error
 	mustEmbedUnimplementedLoanServiceServer()
 }
 
@@ -64,6 +80,9 @@ type UnimplementedLoanServiceServer struct{}
 
 func (UnimplementedLoanServiceServer) SubmitApplication(context.Context, *SubmitRequest) (*SubmitResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SubmitApplication not implemented")
+}
+func (UnimplementedLoanServiceServer) TrackProgress(grpc.BidiStreamingServer[TrackRequest, ProgressEvent]) error {
+	return status.Error(codes.Unimplemented, "method TrackProgress not implemented")
 }
 func (UnimplementedLoanServiceServer) mustEmbedUnimplementedLoanServiceServer() {}
 func (UnimplementedLoanServiceServer) testEmbeddedByValue()                     {}
@@ -104,6 +123,13 @@ func _LoanService_SubmitApplication_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LoanService_TrackProgress_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(LoanServiceServer).TrackProgress(&grpc.GenericServerStream[TrackRequest, ProgressEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type LoanService_TrackProgressServer = grpc.BidiStreamingServer[TrackRequest, ProgressEvent]
+
 // LoanService_ServiceDesc is the grpc.ServiceDesc for LoanService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -116,6 +142,13 @@ var LoanService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _LoanService_SubmitApplication_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "TrackProgress",
+			Handler:       _LoanService_TrackProgress_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "loanflow/v1/loanflow.proto",
 }
