@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             (unknown)
-// source: api/loanflow/v1/loanflow.proto
+// source: loanflow/v1/loanflow.proto
 
 package v1
 
@@ -117,5 +117,5 @@ var LoanService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/loanflow/v1/loanflow.proto",
+	Metadata: "loanflow/v1/loanflow.proto",
 }

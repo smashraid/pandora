@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: api/loanflow/v1/loanflow.proto
+// source: loanflow/v1/loanflow.proto
 
 package v1
 
@@ -30,7 +30,7 @@ type SubmitRequest struct {
 
 func (x *SubmitRequest) Reset() {
 	*x = SubmitRequest{}
-	mi := &file_api_loanflow_v1_loanflow_proto_msgTypes[0]
+	mi := &file_loanflow_v1_loanflow_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +42,7 @@ func (x *SubmitRequest) String() string {
 func (*SubmitRequest) ProtoMessage() {}
 
 func (x *SubmitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_loanflow_v1_loanflow_proto_msgTypes[0]
+	mi := &file_loanflow_v1_loanflow_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +55,7 @@ func (x *SubmitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitRequest.ProtoReflect.Descriptor instead.
 func (*SubmitRequest) Descriptor() ([]byte, []int) {
-	return file_api_loanflow_v1_loanflow_proto_rawDescGZIP(), []int{0}
+	return file_loanflow_v1_loanflow_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SubmitRequest) GetApplicationId() string {
@@ -74,7 +74,7 @@ type SubmitResponse struct {
 
 func (x *SubmitResponse) Reset() {
 	*x = SubmitResponse{}
-	mi := &file_api_loanflow_v1_loanflow_proto_msgTypes[1]
+	mi := &file_loanflow_v1_loanflow_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -86,7 +86,7 @@ func (x *SubmitResponse) String() string {
 func (*SubmitResponse) ProtoMessage() {}
 
 func (x *SubmitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_loanflow_v1_loanflow_proto_msgTypes[1]
+	mi := &file_loanflow_v1_loanflow_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -99,7 +99,7 @@ func (x *SubmitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitResponse.ProtoReflect.Descriptor instead.
 func (*SubmitResponse) Descriptor() ([]byte, []int) {
-	return file_api_loanflow_v1_loanflow_proto_rawDescGZIP(), []int{1}
+	return file_loanflow_v1_loanflow_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SubmitResponse) GetTaskId() string {
@@ -109,11 +109,11 @@ func (x *SubmitResponse) GetTaskId() string {
 	return ""
 }
 
-var File_api_loanflow_v1_loanflow_proto protoreflect.FileDescriptor
+var File_loanflow_v1_loanflow_proto protoreflect.FileDescriptor
 
-const file_api_loanflow_v1_loanflow_proto_rawDesc = "" +
+const file_loanflow_v1_loanflow_proto_rawDesc = "" +
 	"\n" +
-	"\x1eapi/loanflow/v1/loanflow.proto\x12\vloanflow.v1\"6\n" +
+	"\x1aloanflow/v1/loanflow.proto\x12\vloanflow.v1\"6\n" +
 	"\rSubmitRequest\x12%\n" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\")\n" +
 	"\x0eSubmitResponse\x12\x17\n" +
@@ -122,23 +122,23 @@ const file_api_loanflow_v1_loanflow_proto_rawDesc = "" +
 	"\x11SubmitApplication\x12\x1a.loanflow.v1.SubmitRequest\x1a\x1b.loanflow.v1.SubmitResponseB.Z,github.com/smashraid/pandora/api/loanflow/v1b\x06proto3"
 
 var (
-	file_api_loanflow_v1_loanflow_proto_rawDescOnce sync.Once
-	file_api_loanflow_v1_loanflow_proto_rawDescData []byte
+	file_loanflow_v1_loanflow_proto_rawDescOnce sync.Once
+	file_loanflow_v1_loanflow_proto_rawDescData []byte
 )
 
-func file_api_loanflow_v1_loanflow_proto_rawDescGZIP() []byte {
-	file_api_loanflow_v1_loanflow_proto_rawDescOnce.Do(func() {
-		file_api_loanflow_v1_loanflow_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_loanflow_v1_loanflow_proto_rawDesc), len(file_api_loanflow_v1_loanflow_proto_rawDesc)))
+func file_loanflow_v1_loanflow_proto_rawDescGZIP() []byte {
+	file_loanflow_v1_loanflow_proto_rawDescOnce.Do(func() {
+		file_loanflow_v1_loanflow_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_loanflow_v1_loanflow_proto_rawDesc), len(file_loanflow_v1_loanflow_proto_rawDesc)))
 	})
-	return file_api_loanflow_v1_loanflow_proto_rawDescData
+	return file_loanflow_v1_loanflow_proto_rawDescData
 }
 
-var file_api_loanflow_v1_loanflow_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_api_loanflow_v1_loanflow_proto_goTypes = []any{
+var file_loanflow_v1_loanflow_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_loanflow_v1_loanflow_proto_goTypes = []any{
 	(*SubmitRequest)(nil),  // 0: loanflow.v1.SubmitRequest
 	(*SubmitResponse)(nil), // 1: loanflow.v1.SubmitResponse
 }
-var file_api_loanflow_v1_loanflow_proto_depIdxs = []int32{
+var file_loanflow_v1_loanflow_proto_depIdxs = []int32{
 	0, // 0: loanflow.v1.LoanService.SubmitApplication:input_type -> loanflow.v1.SubmitRequest
 	1, // 1: loanflow.v1.LoanService.SubmitApplication:output_type -> loanflow.v1.SubmitResponse
 	1, // [1:2] is the sub-list for method output_type
@@ -148,26 +148,26 @@ var file_api_loanflow_v1_loanflow_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_api_loanflow_v1_loanflow_proto_init() }
-func file_api_loanflow_v1_loanflow_proto_init() {
-	if File_api_loanflow_v1_loanflow_proto != nil {
+func init() { file_loanflow_v1_loanflow_proto_init() }
+func file_loanflow_v1_loanflow_proto_init() {
+	if File_loanflow_v1_loanflow_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_loanflow_v1_loanflow_proto_rawDesc), len(file_api_loanflow_v1_loanflow_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_loanflow_v1_loanflow_proto_rawDesc), len(file_loanflow_v1_loanflow_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_api_loanflow_v1_loanflow_proto_goTypes,
-		DependencyIndexes: file_api_loanflow_v1_loanflow_proto_depIdxs,
-		MessageInfos:      file_api_loanflow_v1_loanflow_proto_msgTypes,
+		GoTypes:           file_loanflow_v1_loanflow_proto_goTypes,
+		DependencyIndexes: file_loanflow_v1_loanflow_proto_depIdxs,
+		MessageInfos:      file_loanflow_v1_loanflow_proto_msgTypes,
 	}.Build()
-	File_api_loanflow_v1_loanflow_proto = out.File
-	file_api_loanflow_v1_loanflow_proto_goTypes = nil
-	file_api_loanflow_v1_loanflow_proto_depIdxs = nil
+	File_loanflow_v1_loanflow_proto = out.File
+	file_loanflow_v1_loanflow_proto_goTypes = nil
+	file_loanflow_v1_loanflow_proto_depIdxs = nil
 }

@@ -1,7 +1,7 @@
 .PHONY: proto
 proto:
 	@echo "Generating protobuf code..."
-	buf generate
+	cd api && buf generate
 	@echo "Done."
 
 .PHONY: run
