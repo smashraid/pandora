@@ -46,18 +46,22 @@ func main() {
 	// Receive progress
 	done := make(chan bool)
 	go func() {
+		defer func() {
+			done <- true // always signal completion when this goroutine exits
+		}()
+
 		for {
 			event, err := stream.Recv()
-			if err == io.EOF {
-				break
-			}
 			if err != nil {
-				log.Printf("stream error: %v", err)
-				break
+				if err == io.EOF {
+					log.Println("Stream closed by server")
+				} else {
+					log.Printf("Stream error: %v", err)
+				}
+				return // exit the goroutine, defer will run
 			}
 			log.Printf("Progress: %s - %d%% - %s", event.Step, event.Percent, event.Message)
 		}
-		done <- true
 	}()
 
 	// Cancel after 5 seconds
