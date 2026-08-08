@@ -97,9 +97,8 @@ loanflow/
 │
 └── internal/                  # Private Application Logic (Hexagonal Architecture)
     ├── domain/                # PURE GO DOMAIN
-    │   └── model/
-    │       ├── task.go        # Task state, progress events, and cancellation models
-    │       └── loan.go        # Loan application payload validation entities
+    │   ├── task.go        # Task state, progress events, and cancellation models
+    │   └── loan.go        # Loan application payload validation entities
     │
     ├── ports/                 # Contract Interfaces (Driven & Driving)
     │   ├── inbound/           # Primary Ports
