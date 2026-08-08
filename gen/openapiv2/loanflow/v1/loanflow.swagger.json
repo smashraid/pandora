@@ -1,0 +1,224 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "loanflow/v1/loanflow.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "LoanDocumentProcessorService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/applications": {
+      "post": {
+        "summary": "SubmitApplication accepts loan submissions asynchronously.\nIt returns a task_id immediately without blocking on processing.",
+        "operationId": "LoanDocumentProcessorService_SubmitApplication",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SubmitApplicationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SubmitApplicationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "LoanDocumentProcessorService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1CancelCommand": {
+      "type": "object",
+      "properties": {
+        "taskId": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "v1Document": {
+      "type": "object",
+      "properties": {
+        "documentId": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "title": "e.g., \"PAYSLIP\", \"BANK_STATEMENT\", \"ID_SCAN\""
+        },
+        "s3Url": {
+          "type": "string"
+        }
+      }
+    },
+    "v1Priority": {
+      "type": "string",
+      "enum": [
+        "PRIORITY_UNSPECIFIED",
+        "PRIORITY_STANDARD",
+        "PRIORITY_HIGH"
+      ],
+      "default": "PRIORITY_UNSPECIFIED",
+      "title": "- PRIORITY_HIGH: \u003e $500k loans routed to fast-lane workers"
+    },
+    "v1ProcessingStage": {
+      "type": "string",
+      "enum": [
+        "PROCESSING_STAGE_UNSPECIFIED",
+        "PROCESSING_STAGE_INGESTION",
+        "PROCESSING_STAGE_DOCUMENT_OCR",
+        "PROCESSING_STAGE_CREDIT_BUREAU_CHECK",
+        "PROCESSING_STAGE_FRAUD_EVALUATION",
+        "PROCESSING_STAGE_FINAL_DECISION"
+      ],
+      "default": "PROCESSING_STAGE_UNSPECIFIED"
+    },
+    "v1SubmitApplicationRequest": {
+      "type": "object",
+      "properties": {
+        "applicationId": {
+          "type": "string",
+          "title": "Business ID used for idempotency (e.g., prevent duplicate submissions)"
+        },
+        "applicantEmail": {
+          "type": "string"
+        },
+        "requestedAmountCents": {
+          "type": "string",
+          "format": "int64",
+          "title": "Requested loan amount in USD cents (e.g., $50,000.00 = 5000000)"
+        },
+        "priority": {
+          "$ref": "#/definitions/v1Priority"
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Document"
+          }
+        }
+      }
+    },
+    "v1SubmitApplicationResponse": {
+      "type": "object",
+      "properties": {
+        "taskId": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1TaskStatus"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "v1SubscribeCommand": {
+      "type": "object",
+      "properties": {
+        "taskId": {
+          "type": "string"
+        }
+      }
+    },
+    "v1TaskStatus": {
+      "type": "string",
+      "enum": [
+        "TASK_STATUS_UNSPECIFIED",
+        "TASK_STATUS_PENDING",
+        "TASK_STATUS_PROCESSING",
+        "TASK_STATUS_COMPLETED",
+        "TASK_STATUS_FAILED",
+        "TASK_STATUS_CANCELLED"
+      ],
+      "default": "TASK_STATUS_UNSPECIFIED"
+    },
+    "v1TrackProgressResponse": {
+      "type": "object",
+      "properties": {
+        "taskId": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1TaskStatus"
+        },
+        "currentStage": {
+          "$ref": "#/definitions/v1ProcessingStage"
+        },
+        "progressPercentage": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Progress percentage from 0 to 100"
+        },
+        "statusMessage": {
+          "type": "string",
+          "title": "e.g., \"Processing OCR page 3/10\""
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "errorDetails": {
+          "type": "string",
+          "title": "Error details populated if status == TASK_STATUS_FAILED"
+        }
+      }
+    }
+  }
+}

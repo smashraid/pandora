@@ -1,0 +1,22 @@
+version: v1
+plugins:
+  # 1. Standard Go Protocol Buffer structs
+  - plugin: buf.build/protocolbuffers/go:v1.32.0
+    out: gen/go
+    opt: paths=source_relative
+
+  # 2. Standard Go gRPC code (Services, Clients, Bidi Streams)
+  - plugin: buf.build/grpc/go:v1.3.0
+    out: gen/go
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+
+  # 3. gRPC-Gateway REST Reverse Proxy
+  - plugin: buf.build/grpc-ecosystem/gateway:v2.19.0
+    out: gen/go
+    opt: paths=source_relative
+
+  # 4. OpenAPI / Swagger Documentation
+  - plugin: buf.build/grpc-ecosystem/openapiv2:v2.19.0
+    out: gen/openapiv2
