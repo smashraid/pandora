@@ -1,4 +1,3 @@
-// internal/ports/inbound/track_progress.go
 package inbound
 
 import (

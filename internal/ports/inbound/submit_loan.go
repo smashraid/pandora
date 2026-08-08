@@ -1,4 +1,3 @@
-// internal/ports/inbound/submit_loan.go
 package inbound
 
 import (

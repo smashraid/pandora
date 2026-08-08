@@ -7,16 +7,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/smashraid/pandora/internal/domain"
-	"github.com/smashraid/pandora/internal/ports"
+	"github.com/smashraid/pandora/internal/ports/outbound"
 )
 
 type LoanService struct {
-	repo       ports.TaskRepository
-	publisher  ports.EventPublisher
-	subscriber ports.EventSubscriber
+	repo       outbound.TaskRepository
+	publisher  outbound.EventPublisher
+	subscriber outbound.EventSubscriber
 }
 
-func NewLoanService(repo ports.TaskRepository, pub ports.EventPublisher, sub ports.EventSubscriber) *LoanService {
+func NewLoanService(repo outbound.TaskRepository, pub outbound.EventPublisher, sub outbound.EventSubscriber) *LoanService {
 	return &LoanService{
 		repo:       repo,
 		publisher:  pub,
