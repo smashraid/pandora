@@ -2,132 +2,63 @@ package main
 
 import (
 	"context"
-	"io"
-	"log"
+	"log/slog"
 	"net"
-	"sync"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/grpc/status"
 
-	pb "github.com/smashraid/pandora/api/loanflow/v1"
+	loanflowv1 "github.com/smashraid/pandora/gen/go/loanflow/v1"
+	grpcAdapter "github.com/smashraid/pandora/internal/adapters/inbound/grpc"
+	memoryAdapter "github.com/smashraid/pandora/internal/adapters/outbound/memory"
+	"github.com/smashraid/pandora/internal/services"
 )
 
-type server struct {
-	pb.UnimplementedLoanServiceServer
-	// Store active streams to allow cancellation
-	mu      sync.RWMutex
-	streams map[string]chan bool // task_id -> cancel channel
-}
-
-func (s *server) SubmitApplication(ctx context.Context, req *pb.SubmitRequest) (*pb.SubmitResponse, error) {
-	log.Printf("Received application: %s", req.ApplicationId)
-	// Dummy task ID generation
-	taskID := "task-" + req.ApplicationId
-	return &pb.SubmitResponse{TaskId: taskID}, nil
-}
-
-func (s *server) TrackProgress(stream pb.LoanService_TrackProgressServer) error {
-	// First message must contain task_id
-	req, err := stream.Recv()
-	if err != nil {
-		return status.Errorf(codes.Unknown, "failed to receive initial request: %v", err)
-	}
-	taskID := req.TaskId
-	log.Printf("TrackProgress started for task: %s", taskID)
-
-	// Create cancel channel for this stream
-	cancelChan := make(chan bool)
-	s.mu.Lock()
-	if s.streams == nil {
-		s.streams = make(map[string]chan bool)
-	}
-	s.streams[taskID] = cancelChan
-	s.mu.Unlock()
-
-	// Clean up when function exits
-	defer func() {
-		s.mu.Lock()
-		delete(s.streams, taskID)
-		s.mu.Unlock()
-		close(cancelChan)
-	}()
-
-	// Goroutine to handle incoming messages (e.g., cancel request)
-	go func() {
-		for {
-			req, err := stream.Recv()
-			if err == io.EOF {
-				return
-			}
-			if err != nil {
-				log.Printf("Error receiving from stream: %v", err)
-				return
-			}
-			if req.Cancel {
-				log.Printf("Cancel requested for task: %s", taskID)
-				cancelChan <- true
-				return
-			}
-		}
-	}()
-
-	// Simulate progress steps
-	steps := []struct {
-		step    string
-		percent int
-		message string
-		delay   time.Duration
-	}{
-		{"OCR", 10, "Starting OCR on document...", 1 * time.Second},
-		{"OCR", 50, "Processing page 5/10...", 2 * time.Second},
-		{"OCR", 100, "OCR completed", 1 * time.Second},
-		{"Validation", 20, "Validating signatures...", 2 * time.Second},
-		{"Validation", 100, "Validation passed", 1 * time.Second},
-		{"CreditCheck", 30, "Calling credit bureau...", 3 * time.Second},
-		{"CreditCheck", 100, "Credit score retrieved", 1 * time.Second},
-		{"Done", 100, "Loan application processed successfully", 0},
-	}
-
-	for _, st := range steps {
-		// Check if cancellation was requested
-		select {
-		case <-cancelChan:
-			log.Printf("Task %s cancelled by client", taskID)
-			return status.Errorf(codes.Canceled, "task cancelled by client")
-		default:
-		}
-
-		// Send progress event
-		event := &pb.ProgressEvent{
-			TaskId:  taskID,
-			Step:    st.step,
-			Percent: int32(st.percent),
-			Message: st.message,
-		}
-		if err := stream.Send(event); err != nil {
-			return err
-		}
-		time.Sleep(st.delay)
-	}
-
-	log.Printf("Task %s completed successfully", taskID)
-	return nil
-}
+const defaultPort = ":50051"
 
 func main() {
-	lis, err := net.Listen("tcp", ":8000")
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+
+	// 1. Initialize Outbound Infrastructure Adapters (In-Memory for now)
+	repo := memoryAdapter.NewMemoryTaskRepository()
+	broker := memoryAdapter.NewEventBroker()
+
+	// 2. Initialize Application Service (Core Use Case)
+	loanService := services.NewLoanService(repo, broker, broker)
+
+	// 3. Initialize Inbound Delivery Adapter (gRPC Handler)
+	grpcHandler := grpcAdapter.NewLoanHandler(loanService, loanService)
+
+	// 4. Create and Configure gRPC Server
+	lis, err := net.Listen("tcp", defaultPort)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		slog.Error("failed to listen on port", "port", defaultPort, "error", err)
+		os.Exit(1)
 	}
-	s := grpc.NewServer()
-	pb.RegisterLoanServiceServer(s, &server{})
-	reflection.Register(s)
-	log.Printf("server listening at %v", lis.Addr())
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
+
+	grpcServer := grpc.NewServer()
+	loanflowv1.RegisterLoanDocumentProcessorServiceServer(grpcServer, grpcHandler)
+
+	// Enable gRPC Server Reflection for testing with grpcurl or Postman
+	reflection.Register(grpcServer)
+
+	// 5. Graceful Shutdown Signal Handling
+	stopCtx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	go func() {
+		slog.Info("Starting LoanFlow Scheduler gRPC Server", "address", defaultPort)
+		if err := grpcServer.Serve(lis); err != nil {
+			slog.Error("gRPC server stopped with error", "error", err)
+		}
+	}()
+
+	<-stopCtx.Done()
+	slog.Info("Shutting down gRPC server gracefully...")
+	grpcServer.GracefulStop()
+	slog.Info("Server stopped successfully")
 }
