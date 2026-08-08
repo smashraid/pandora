@@ -1,0 +1,15 @@
+version: v2
+modules:
+  - path: api
+    name: buf.build/smashraid/loanflow
+deps:
+  - buf.build/googleapis/googleapis
+  - buf.build/bufbuild/protovalidate
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX
+breaking:
+  use:
+    - FILE

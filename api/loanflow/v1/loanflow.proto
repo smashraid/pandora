@@ -2,29 +2,125 @@ syntax = "proto3";
 
 package loanflow.v1;
 
-option go_package = "github.com/smashraid/pandora/api/loanflow/v1";
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
 
-service LoanService {
-  rpc SubmitApplication(SubmitRequest) returns (SubmitResponse);
-  rpc TrackProgress(stream TrackRequest) returns (stream ProgressEvent);
+option go_package = "github.com/smashraid/loanflow/gen/go/loanflow/v1;loanflowv1";
+
+// LoanDocumentProcessorService orchestrates asynchronous loan processing,
+// status tracking, and mid-flight cancellation over gRPC and HTTP/REST.
+service LoanDocumentProcessorService {
+  // SubmitApplication accepts loan submissions asynchronously.
+  // It returns a task_id immediately without blocking on processing.
+  rpc SubmitApplication(SubmitApplicationRequest) returns (SubmitApplicationResponse) {
+    option (google.api.http) = {
+      post: "/v1/applications"
+      body: "*"
+    };
+  }
+
+  // TrackProgress is a bidirectional streaming RPC.
+  // - Server -> Client: Pushes real-time progress events.
+  // - Client -> Server: Can send cancellation commands mid-stream.
+  rpc TrackProgress(stream TrackProgressRequest) returns (stream TrackProgressResponse);
 }
 
-message SubmitRequest {
-  string application_id = 1;
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum Priority {
+  PRIORITY_UNSPECIFIED = 0;
+  PRIORITY_STANDARD = 1;
+  PRIORITY_HIGH = 2; // > $500k loans routed to fast-lane workers
 }
 
-message SubmitResponse {
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_PENDING = 1;
+  TASK_STATUS_PROCESSING = 2;
+  TASK_STATUS_COMPLETED = 3;
+  TASK_STATUS_FAILED = 4;
+  TASK_STATUS_CANCELLED = 5;
+}
+
+enum ProcessingStage {
+  PROCESSING_STAGE_UNSPECIFIED = 0;
+  PROCESSING_STAGE_INGESTION = 1;
+  PROCESSING_STAGE_DOCUMENT_OCR = 2;
+  PROCESSING_STAGE_CREDIT_BUREAU_CHECK = 3;
+  PROCESSING_STAGE_FRAUD_EVALUATION = 4;
+  PROCESSING_STAGE_FINAL_DECISION = 5;
+}
+
+// -----------------------------------------------------------------------------
+// Unary RPC Messages
+// -----------------------------------------------------------------------------
+
+message Document {
+  string document_id = 1 [(buf.validate.field).string.uuid = true];
+  string type = 2 [(buf.validate.field).string.min_len = 1]; // e.g., "PAYSLIP", "BANK_STATEMENT", "ID_SCAN"
+  string s3_url = 3 [(buf.validate.field).string.uri = true];
+}
+
+message SubmitApplicationRequest {
+  // Business ID used for idempotency (e.g., prevent duplicate submissions)
+  string application_id = 1 [(buf.validate.field).string.min_len = 3];
+
+  string applicant_email = 2 [(buf.validate.field).string.email = true];
+
+  // Requested loan amount in USD cents (e.g., $50,000.00 = 5000000)
+  int64 requested_amount_cents = 3 [(buf.validate.field).int64.gt = 0];
+
+  Priority priority = 4 [(buf.validate.field).enum.defined_only = true];
+
+  repeated Document documents = 5 [(buf.validate.field).repeated.min_items = 1];
+}
+
+message SubmitApplicationResponse {
+  string task_id = 1 [(buf.validate.field).string.uuid = true];
+  TaskStatus status = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+// -----------------------------------------------------------------------------
+// Bidirectional Streaming Messages
+// -----------------------------------------------------------------------------
+
+message TrackProgressRequest {
+  oneof payload {
+    // Initial connection command sent by the client to subscribe to updates
+    SubscribeCommand subscribe = 1;
+
+    // Command sent by the client mid-stream to request immediate job cancellation
+    CancelCommand cancel = 2;
+  }
+}
+
+message SubscribeCommand {
+  string task_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message CancelCommand {
+  string task_id = 1 [(buf.validate.field).string.uuid = true];
+  string reason = 2 [(buf.validate.field).string.min_len = 3];
+}
+
+message TrackProgressResponse {
   string task_id = 1;
-}
+  TaskStatus status = 2;
+  ProcessingStage current_stage = 3;
 
-message TrackRequest {
-  string task_id = 1;
-  bool cancel = 2;
-}
+  // Progress percentage from 0 to 100
+  int32 progress_percentage = 4 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 100
+  }];
 
-message ProgressEvent {
-  string task_id = 1;
-  string step = 2; // e.g., "OCR", "Validation", "CreditCheck", "Done"
-  int32 percent = 3; // 0-100
-  string message = 4; // human-readable status
+  string status_message = 5; // e.g., "Processing OCR page 3/10"
+  google.protobuf.Timestamp timestamp = 6;
+
+  // Error details populated if status == TASK_STATUS_FAILED
+  string error_details = 7;
 }
