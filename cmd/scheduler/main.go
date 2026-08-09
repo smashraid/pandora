@@ -25,7 +25,7 @@ func main() {
 
 	// 1. Initialize Outbound Infrastructure Adapters (In-Memory for now)
 	repo := memoryAdapter.NewMemoryTaskRepository()
-	broker := memoryAdapter.NewEventBroker()
+	broker := memoryAdapter.NewMemoryEventBroker()
 
 	// 2. Initialize Application Service (Core Use Case)
 	loanService := services.NewLoanService(repo, broker, broker)

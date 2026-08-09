@@ -12,7 +12,7 @@ type EventBroker struct {
 	subscribers map[string][]chan *domain.ProcessingTask
 }
 
-func NewEventBroker() *EventBroker {
+func NewMemoryEventBroker() *EventBroker {
 	return &EventBroker{
 		subscribers: make(map[string][]chan *domain.ProcessingTask),
 	}
