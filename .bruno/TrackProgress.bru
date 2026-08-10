@@ -1,0 +1,23 @@
+meta {
+  name: TrackProgress
+  type: grpc
+  seq: 1
+}
+
+grpc {
+  url: localhost:50051
+  method: /loanflow.v1.LoanDocumentProcessorService/TrackProgress
+  body: grpc
+  auth: inherit
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "subscribe": {
+        "task_id": "b787f5da-0f88-41f5-b311-083c94b9dc8f"
+      }
+    }
+  '''
+}

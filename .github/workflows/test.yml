@@ -1,0 +1,67 @@
+name: Run Tests & Verification
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    name: Run Go Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: loanflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      valkey:
+        image: valkey/valkey:8.0-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv migrate /usr/local/bin/
+
+      - name: Run Database Migrations
+        run: |
+          migrate -path migrations -database "postgres://admin:admin@localhost:5432/loanflow_test?sslmode=disable" up
+
+      - name: Run Go Unit & Integration Tests (with Race Detector)
+        env:
+          TEST_POSTGRES_URL: "postgres://admin:admin@localhost:5432/loanflow_test?sslmode=disable"
+          TEST_VALKEY_ADDR: "localhost:6379"
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Verify Code Formatting & Go Vet
+        run: |
+          go vet ./...
+          test -z $(gofmt -l .)
