@@ -14,7 +14,7 @@ import (
 	loanflowv1 "github.com/smashraid/pandora/gen/go/loanflow/v1"
 	grpcAdapter "github.com/smashraid/pandora/internal/adapters/inbound/grpc"
 	memoryAdapter "github.com/smashraid/pandora/internal/adapters/outbound/memory"
-	"github.com/smashraid/pandora/internal/services"
+	"github.com/smashraid/pandora/internal/service"
 )
 
 const defaultPort = ":50051"
@@ -25,10 +25,10 @@ func main() {
 
 	// 1. Initialize Outbound Infrastructure Adapters (In-Memory for now)
 	repo := memoryAdapter.NewMemoryTaskRepository()
-	broker := memoryAdapter.NewEventBroker()
+	broker := memoryAdapter.NewMemoryEventBroker()
 
 	// 2. Initialize Application Service (Core Use Case)
-	loanService := services.NewLoanService(repo, broker, broker)
+	loanService := service.NewLoanService(repo, broker, broker)
 
 	// 3. Initialize Inbound Delivery Adapter (gRPC Handler)
 	grpcHandler := grpcAdapter.NewLoanHandler(loanService, loanService)
