@@ -20,12 +20,23 @@ func NewPostgresTaskRepository(db *sql.DB) *PostgresTaskRepository {
 	return &PostgresTaskRepository{db: db}
 }
 
-func (r *PostgresTaskRepository) SaveApplication(ctx context.Context, app *domain.LoanApplication) error {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+func (r *PostgresTaskRepository) SaveApplication(ctx context.Context, app *domain.LoanApplication) (err error) {
+	tx, beginErr := r.db.BeginTx(ctx, nil)
+	if beginErr != nil {
+		return fmt.Errorf("failed to begin transaction: %w", beginErr)
 	}
-	defer tx.Rollback()
+
+	defer func() {
+		if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
+			if err != nil {
+				// Join the original execution error with the rollback failure error
+				err = errors.Join(err, fmt.Errorf("rollback failed: %w", rbErr))
+			} else {
+				// If queries succeeded but commit failed or didn't run, report the rollback failure
+				err = fmt.Errorf("rollback failed: %w", rbErr)
+			}
+		}
+	}()
 
 	queryApp := `
 		INSERT INTO loan_applications (id, applicant_email, requested_amount_cents, priority, created_at)
@@ -47,10 +58,14 @@ func (r *PostgresTaskRepository) SaveApplication(ctx context.Context, app *domai
 		}
 	}
 
-	return tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
 }
 
-func (r *PostgresTaskRepository) GetApplicationByID(ctx context.Context, appID string) (*domain.LoanApplication, error) {
+func (r *PostgresTaskRepository) GetApplicationByID(ctx context.Context, appID string) (app *domain.LoanApplication, err error) {
 	queryApp := `
 		SELECT id, applicant_email, requested_amount_cents, priority, created_at
 		FROM loan_applications
@@ -58,36 +73,51 @@ func (r *PostgresTaskRepository) GetApplicationByID(ctx context.Context, appID s
 	`
 	row := r.db.QueryRowContext(ctx, queryApp, appID)
 
-	var app domain.LoanApplication
+	var fetchedApp domain.LoanApplication
 	var priority string
-	err := row.Scan(&app.ID, &app.ApplicantEmail, &app.RequestedAmountCents, &priority, &app.CreatedAt)
-	if errors.Is(err, sql.ErrNoRows) {
+	scanErr := row.Scan(&fetchedApp.ID, &fetchedApp.ApplicantEmail, &fetchedApp.RequestedAmountCents, &priority, &fetchedApp.CreatedAt)
+	if errors.Is(scanErr, sql.ErrNoRows) {
 		return nil, domain.ErrTaskNotFound
-	} else if err != nil {
-		return nil, fmt.Errorf("failed to query application: %w", err)
+	} else if scanErr != nil {
+		return nil, fmt.Errorf("failed to query application: %w", scanErr)
 	}
-	app.Priority = domain.Priority(priority)
+	fetchedApp.Priority = domain.Priority(priority)
 
 	queryDocs := `
 		SELECT id, document_type, s3_url
 		FROM application_documents
 		WHERE application_id = $1
 	`
-	rows, err := r.db.QueryContext(ctx, queryDocs, appID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query documents: %w", err)
+	rows, queryErr := r.db.QueryContext(ctx, queryDocs, appID)
+	if queryErr != nil {
+		return nil, fmt.Errorf("failed to query documents: %w", queryErr)
 	}
-	defer rows.Close()
+
+	// Capture closeErr in defer and join/assign to named return `err`
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			if err != nil {
+				err = errors.Join(err, fmt.Errorf("failed to close rows: %w", closeErr))
+			} else {
+				err = fmt.Errorf("failed to close rows: %w", closeErr)
+			}
+		}
+	}()
 
 	for rows.Next() {
 		var doc domain.Document
-		if err := rows.Scan(&doc.ID, &doc.Type, &doc.S3URL); err != nil {
+		if err = rows.Scan(&doc.ID, &doc.Type, &doc.S3URL); err != nil {
 			return nil, fmt.Errorf("failed to scan document: %w", err)
 		}
-		app.Documents = append(app.Documents, doc)
+		fetchedApp.Documents = append(fetchedApp.Documents, doc)
 	}
 
-	return &app, nil
+	// Check if any error occurred during iteration
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error during rows iteration: %w", err)
+	}
+
+	return &fetchedApp, nil
 }
 
 func (r *PostgresTaskRepository) CreateTask(ctx context.Context, task *domain.ProcessingTask) error {
