@@ -1,16 +1,15 @@
 version: 2
 updates:
-    - package-ecosystem: "gofmt"
-      directory: "/"
-      schedule:
-          interval: "weekly"
-      open-pull-requests-limit: 10
-      target-branch: "develop"
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    target-branch: "develop"
 
-
-    - package-ecosystem: "github-actions"
-      directory: "/"
-      schedule:
-          interval: "weekly"
-      open-pull-requests-limit: 5
-      target-branch: "develop"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    target-branch: "develop"
