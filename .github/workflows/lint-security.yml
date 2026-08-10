@@ -11,19 +11,20 @@ jobs:
         name: GolangCI-Lint
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+        - uses: actions/checkout@v4
 
-            - name: Set up Go
-              uses: actions/setup-go@v5
-              with:
-                  go-version-file: "go.mod"
-                  cache: true
+        - name: Set up Go
+          uses: actions/setup-go@v5
+          with:
+            go-version-file: 'go.mod'
+            check-latest: true
+            cache: true
 
-            - name: Run golangci-lint
-              uses: golangci/golangci-lint-action@v4
-              with:
-                  version: v1.55.2
-                  args: --timeout=5m
+        - name: Run golangci-lint
+          uses: golangci/golangci-lint-action@v6
+          with:
+            version: latest
+            args: --timeout=5m
 
     gosec:
         name: Security AST Scan (Gosec)
@@ -46,6 +47,7 @@ jobs:
               uses: actions/setup-go@v5
               with:
                   go-version-file: "go.mod"
+                  check-latest: true
                   cache: true
 
             - name: Run govulncheck
