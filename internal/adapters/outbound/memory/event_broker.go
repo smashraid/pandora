@@ -5,20 +5,26 @@ import (
 	"sync"
 
 	"github.com/smashraid/pandora/internal/domain"
+	"github.com/smashraid/pandora/internal/ports/outbound"
 )
 
-type EventBroker struct {
+var (
+	_ outbound.EventPublisher  = (*MemoryEventBroker)(nil)
+	_ outbound.EventSubscriber = (*MemoryEventBroker)(nil)
+)
+
+type MemoryEventBroker struct {
 	mu          sync.RWMutex
 	subscribers map[string][]chan *domain.ProcessingTask
 }
 
-func NewMemoryEventBroker() *EventBroker {
-	return &EventBroker{
+func NewMemoryEventBroker() *MemoryEventBroker {
+	return &MemoryEventBroker{
 		subscribers: make(map[string][]chan *domain.ProcessingTask),
 	}
 }
 
-func (b *EventBroker) PublishProgressEvent(ctx context.Context, task *domain.ProcessingTask) error {
+func (b *MemoryEventBroker) PublishProgressEvent(ctx context.Context, task *domain.ProcessingTask) error {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
@@ -38,7 +44,7 @@ func (b *EventBroker) PublishProgressEvent(ctx context.Context, task *domain.Pro
 	return nil
 }
 
-func (b *EventBroker) SubscribeProgressEvents(ctx context.Context, taskID string) (<-chan *domain.ProcessingTask, error) {
+func (b *MemoryEventBroker) SubscribeProgressEvents(ctx context.Context, taskID string) (<-chan *domain.ProcessingTask, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 

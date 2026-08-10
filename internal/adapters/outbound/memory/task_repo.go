@@ -5,7 +5,10 @@ import (
 	"sync"
 
 	"github.com/smashraid/pandora/internal/domain"
+	"github.com/smashraid/pandora/internal/ports/outbound"
 )
+
+var _ outbound.TaskRepository = (*MemoryTaskRepository)(nil)
 
 type MemoryTaskRepository struct {
 	mu           sync.RWMutex

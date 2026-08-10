@@ -2,6 +2,7 @@ package memory_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -9,83 +10,86 @@ import (
 	"github.com/smashraid/pandora/internal/domain"
 )
 
-func TestMemoryTaskRepository_SaveAndGetTask(t *testing.T) {
+func TestMemoryTaskRepository_ApplicationOperations(t *testing.T) {
+	ctx := context.Background()
+	repo := memory.NewMemoryTaskRepository()
+
+	app := &domain.LoanApplication{
+		ID:                   "app-100",
+		ApplicantEmail:       "test@example.com",
+		RequestedAmountCents: 5000000,
+		Priority:             domain.PriorityHigh,
+		CreatedAt:            time.Now().UTC(),
+	}
+
+	// 1. Save Application
+	if err := repo.SaveApplication(ctx, app); err != nil {
+		t.Fatalf("expected no error saving application, got: %v", err)
+	}
+
+	// 2. Get Application Success
+	fetched, err := repo.GetApplicationByID(ctx, "app-100")
+	if err != nil {
+		t.Fatalf("expected application, got error: %v", err)
+	}
+	if fetched.ApplicantEmail != app.ApplicantEmail {
+		t.Errorf("expected email %s, got %s", app.ApplicantEmail, fetched.ApplicantEmail)
+	}
+
+	// 3. Get Application NotFound
+	_, err = repo.GetApplicationByID(ctx, "non-existent")
+	if !errors.Is(err, domain.ErrTaskNotFound) {
+		t.Errorf("expected domain.ErrTaskNotFound, got: %v", err)
+	}
+}
+
+func TestMemoryTaskRepository_TaskOperations(t *testing.T) {
 	ctx := context.Background()
 	repo := memory.NewMemoryTaskRepository()
 
 	task := &domain.ProcessingTask{
-		TaskID:             "task-123",
-		ApplicationID:      "app-456",
+		TaskID:             "task-100",
+		ApplicationID:      "app-100",
 		Status:             domain.TaskStatusPending,
 		CurrentStage:       domain.StageIngestion,
 		ProgressPercentage: 0,
-		StatusMessage:      "Task initialized",
 		CreatedAt:          time.Now().UTC(),
 		UpdatedAt:          time.Now().UTC(),
 	}
 
 	// 1. Create Task
-	err := repo.CreateTask(ctx, task)
-	if err != nil {
-		t.Fatalf("expected no error saving task, got: %v", err)
+	if err := repo.CreateTask(ctx, task); err != nil {
+		t.Fatalf("expected no error creating task, got: %v", err)
 	}
 
-	// 2. Get Task (Success Case)
-	fetched, err := repo.GetTaskByID(ctx, "task-123")
+	// 2. Get Task
+	fetched, err := repo.GetTaskByID(ctx, "task-100")
 	if err != nil {
-		t.Fatalf("expected to find task, got: %v", err)
+		t.Fatalf("expected task, got error: %v", err)
 	}
-
 	if fetched.TaskID != task.TaskID {
 		t.Errorf("expected task ID %s, got %s", task.TaskID, fetched.TaskID)
 	}
-	if fetched.Status != domain.TaskStatusPending {
-		t.Errorf("expected status %s, got %s", domain.TaskStatusPending, fetched.Status)
-	}
 
-	// 3. Get Task (NotFound Case)
-	_, err = repo.GetTaskByID(ctx, "non-existent-id")
-	if err == nil {
-		t.Error("expected error for non-existent task, got nil")
-	}
-
-}
-
-func TestMemoryTaskRepository_UpdateTaskStatus(t *testing.T) {
-	ctx := context.Background()
-	repo := memory.NewMemoryTaskRepository()
-
-	task := &domain.ProcessingTask{
-		TaskID:             "task-999",
-		ApplicationID:      "app-999",
-		Status:             domain.TaskStatusPending,
-		CurrentStage:       domain.StageIngestion,
-		ProgressPercentage: 10,
-		CreatedAt:          time.Now().UTC(),
-		UpdatedAt:          time.Now().UTC(),
-	}
-
-	_ = repo.CreateTask(ctx, task)
-
-	// Mutate task
+	// 3. Update Task
 	task.Status = domain.TaskStatusProcessing
-	task.CurrentStage = domain.StageDocumentOCR
 	task.ProgressPercentage = 35
-
-	err := repo.UpdateTask(ctx, task)
-	if err != nil {
+	if err := repo.UpdateTask(ctx, task); err != nil {
 		t.Fatalf("expected no error updating task, got: %v", err)
 	}
 
-	fetched, err := repo.GetTaskByID(ctx, "task-999")
+	updated, err := repo.GetTaskByID(ctx, "task-100")
 	if err != nil {
-		t.Fatalf("expected to find updated task, got: %v", err)
+		t.Fatalf("expected updated task, got error: %v", err)
+	}
+	if updated.ProgressPercentage != 35 {
+		t.Errorf("expected progress 35, got %d", updated.ProgressPercentage)
 	}
 
-	if fetched.ProgressPercentage != 35 {
-		t.Errorf("expected progress 35%%, got %d%%", fetched.ProgressPercentage)
-	}
-	if fetched.CurrentStage != domain.StageDocumentOCR {
-		t.Errorf("expected stage %s, got %s", domain.StageDocumentOCR, fetched.CurrentStage)
+	// 4. Update Non-Existent Task
+	invalidTask := &domain.ProcessingTask{TaskID: "invalid"}
+	err = repo.UpdateTask(ctx, invalidTask)
+	if !errors.Is(err, domain.ErrTaskNotFound) {
+		t.Errorf("expected domain.ErrTaskNotFound updating missing task, got: %v", err)
 	}
 }

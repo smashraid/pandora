@@ -14,17 +14,17 @@ func TestMemoryEventBroker_PublishAndSubscribe(t *testing.T) {
 	defer cancel()
 
 	broker := memory.NewMemoryEventBroker()
-	taskID := "task-stream-001"
+	taskID := "task-stream-777"
 
-	// 1. Subscribe to events channel
+	// 1. Subscribe to events
 	ch, err := broker.SubscribeProgressEvents(ctx, taskID)
 	if err != nil {
-		t.Fatalf("failed to subscribe to events: %v", err)
+		t.Fatalf("failed to subscribe: %v", err)
 	}
 
 	event := &domain.ProcessingTask{
 		TaskID:             taskID,
-		ApplicationID:      "app-001",
+		ApplicationID:      "app-777",
 		Status:             domain.TaskStatusProcessing,
 		CurrentStage:       domain.StageCreditBureauCheck,
 		ProgressPercentage: 65,
@@ -32,13 +32,13 @@ func TestMemoryEventBroker_PublishAndSubscribe(t *testing.T) {
 
 	// 2. Publish event asynchronously
 	go func() {
-		time.Sleep(50 * time.Millisecond)
-		if pubErr := broker.PublishProgressEvent(ctx, event); pubErr != nil {
-			t.Errorf("failed to publish event: %v", pubErr)
+		time.Sleep(20 * time.Millisecond)
+		if err := broker.PublishProgressEvent(ctx, event); err != nil {
+			t.Errorf("failed to publish: %v", err)
 		}
 	}()
 
-	// 3. Receive event from stream channel
+	// 3. Receive event from stream
 	select {
 	case received, ok := <-ch:
 		if !ok {
