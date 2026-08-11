@@ -1,6 +1,9 @@
 pre-commit:
+  parallel: true
   commands:
     lint:
-      run: golangci-lint run
+      glob: "*.go"
+      run: golangci-lint run ./...
     security:
+      glob: "*.go"
       run: gosec ./...
