@@ -55,10 +55,18 @@ func (v *ValkeyAdapter) SubscribeProgressEvents(ctx context.Context, taskID stri
 	channel := fmt.Sprintf("task:progress:%s", taskID)
 	pubsub := v.client.Subscribe(ctx, channel)
 
+	// Ensure the subscription is active before starting the background worker
+	if _, err := pubsub.Receive(ctx); err != nil {
+		_ = pubsub.Close()
+		return nil, fmt.Errorf("failed to subscribe to progress channel %s: %w", channel, err)
+	}
+
 	ch := make(chan *domain.ProcessingTask, 100)
 
 	go func() {
-		defer pubsub.Close()
+		defer func() {
+			_ = pubsub.Close()
+		}()
 		defer close(ch)
 
 		valkeyChan := pubsub.Channel()

@@ -35,7 +35,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 	_, _ = db.Exec("TRUNCATE TABLE processing_tasks, application_documents, loan_applications CASCADE;")
 
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	return db
