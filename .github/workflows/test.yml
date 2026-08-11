@@ -28,8 +28,7 @@ jobs:
 
       valkey:
         image: valkey/valkey:8.0-alpine
-        # Configures requirepass AND user 'admin' to match queue_pubsub_test.go
-        command: valkey-server --requirepass admin --user admin on >admin ~* +@all
+        command: valkey-server --requirepass admin --user admin on >admin ~* &* +@all
         ports:
           - 6379:6379
         options: >-
