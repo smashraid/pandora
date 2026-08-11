@@ -53,6 +53,11 @@ jobs:
             - name: Install dependencies
               run: go mod download
 
+            - name: Install golang-migrate
+              run: |
+                curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+                sudo mv migrate /usr/local/bin/
+
             - name: Apply Database Migrations
               run: |
                   migrate -path migrations -database "postgres://admin:admin@localhost:5432/loanflow_test?sslmode=disable" up
