@@ -53,15 +53,15 @@ jobs:
             - name: Install dependencies
               run: go mod download
 
+            - name: Apply Database Migrations
+              run: |
+                  migrate -path migrations -database "postgres://admin:admin@localhost:5432/loanflow_test?sslmode=disable" up
+
             - name: Run Linters & Static Analysis
               run: go vet ./...
 
             - name: Run Unit Tests
               run: go test -v -race -short ./internal/...
-
-            - name: Apply Database Migrations
-              run: |
-                  migrate -path migrations -database "postgres://admin:admin@localhost:5432/loanflow_test?sslmode=disable" up
 
             - name: Run E2E Integration Tests
               env:
