@@ -17,8 +17,8 @@ type DatabaseConfig struct {
 
 type ValkeyConfig struct {
 	Addr         string        `envconfig:"VALKEY_ADDR" default:"localhost:6379"`
-	Username     string        `envconfig:"VALKEY_USERNAME" default:""`
-	Password     string        `envconfig:"VALKEY_PASSWORD" default:""`
+	Username     string        `envconfig:"VALKEY_USERNAME" default:"admin"`
+	Password     string        `envconfig:"VALKEY_PASSWORD" default:"admin"`
 	DB           int           `envconfig:"VALKEY_DB" default:"0"`
 	DialTimeout  time.Duration `envconfig:"VALKEY_DIAL_TIMEOUT" default:"5s"`
 	ReadTimeout  time.Duration `envconfig:"VALKEY_READ_TIMEOUT" default:"3s"`
