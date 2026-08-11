@@ -45,7 +45,9 @@ func TestE2E_FullLoanProcessingPipeline(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
 
 	if err := db.PingContext(ctx); err != nil {
 		t.Fatalf("database ping failed: %v", err)
@@ -131,7 +133,9 @@ func TestE2E_FullLoanProcessingPipeline(t *testing.T) {
 	if err != nil {
 		t.Fatalf("HTTP POST /v1/applications failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		respBytes, _ := io.ReadAll(resp.Body)
@@ -160,7 +164,9 @@ func TestE2E_FullLoanProcessingPipeline(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create gRPC client: %v", err)
 	}
-	defer grpcConn.Close()
+	defer func() {
+		_ = grpcConn.Close()
+	}()
 
 	client := loanflowv1.NewLoanDocumentProcessorServiceClient(grpcConn)
 	stream, err := client.TrackProgress(ctx)

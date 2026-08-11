@@ -51,7 +51,11 @@ func main() {
 		slog.Error("failed to open database connection", "error", err)
 		os.Exit(1)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			slog.Error("failed to close database connection cleanly", "error", err)
+		}
+	}()
 
 	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
 	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
