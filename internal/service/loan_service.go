@@ -45,7 +45,7 @@ func (s *LoanService) SubmitApplication(ctx context.Context, app *domain.LoanApp
 	}
 
 	// Trigger async pipeline processing
-	go s.processPipeline(context.Background(), task.TaskID)
+	go s.processPipeline(context.WithoutCancel(ctx), task.TaskID)
 
 	return task, nil
 }

@@ -34,7 +34,7 @@ func main() {
 	grpcHandler := grpcAdapter.NewLoanHandler(loanService, loanService)
 
 	// 4. Create and Configure gRPC Server
-	lis, err := net.Listen("tcp", defaultPort)
+	lis, err := net.Listen("tcp", defaultPort) // #nosec G102 -- required for containerized port binding
 	if err != nil {
 		slog.Error("failed to listen on port", "port", defaultPort, "error", err)
 		os.Exit(1)
