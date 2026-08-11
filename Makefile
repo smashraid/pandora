@@ -1,7 +1,16 @@
-.PHONY: all proto lint run build clean grpcurl deps help client
+.PHONY: all init proto lint run build clean grpcurl deps help client
 
 # Default target
 all: help
+
+## init: Set up development environment, install tools, and configure Lefthook git hooks
+init: deps
+	@echo "Installing linters, security tools, and git hooks..."
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install github.com/securego/gosec/v2/cmd/gosec@latest
+	go install github.com/evilmartians/lefthook@latest
+	lefthook install
+	@echo "Development environment initialized successfully!"
 
 ## proto: Update dependencies and generate Protobuf code using Buf v2
 proto:
@@ -39,7 +48,7 @@ grpcurl:
 	@echo "Calling SubmitApplication endpoint on localhost:50051..."
 	grpcurl -plaintext -d '{"application_id":"app-test-999","applicant_email":"jane.doe@example.com","requested_amount_cents":25000000,"priority":"PRIORITY_HIGH","documents":[{"document_id":"123e4567-e89b-12d3-a456-426614174000","type":"PAYSLIP","s3_url":"https://s3.amazonaws.com/bucket/payslip.pdf"}]}' localhost:50051 loanflow.v1.LoanDocumentProcessorService/SubmitApplication
 
-## deps: Install required Go tools andBuf CLI
+## deps: Install required Go tools and Buf CLI
 deps:
 	@echo "Installing Go tools and dependencies..."
 	go mod tidy
