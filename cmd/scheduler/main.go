@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"net"
@@ -11,6 +12,8 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/lib/pq"
+
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,8 +21,10 @@ import (
 
 	loanflowv1 "github.com/smashraid/pandora/gen/go/loanflow/v1"
 	grpcAdapter "github.com/smashraid/pandora/internal/adapters/inbound/grpc"
-	memoryAdapter "github.com/smashraid/pandora/internal/adapters/outbound/memory"
+	postgresAdapter "github.com/smashraid/pandora/internal/adapters/outbound/postgres"
+	valkeyAdapter "github.com/smashraid/pandora/internal/adapters/outbound/valkey"
 	"github.com/smashraid/pandora/internal/service"
+	"github.com/smashraid/pandora/pkg/config"
 )
 
 const (
@@ -33,17 +38,50 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	// 1. Initialize Outbound Infrastructure Adapters (In-Memory)
-	repo := memoryAdapter.NewMemoryTaskRepository()
-	broker := memoryAdapter.NewMemoryEventBroker()
+	// 1. Load Application Configuration
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		slog.Error("failed to load configuration", "error", err)
+		os.Exit(1)
+	}
 
-	// 2. Initialize Application Service (Core Use Case)
-	loanService := service.NewLoanService(repo, broker, broker)
+	// 2. Initialize PostgreSQL Connection
+	db, err := sql.Open(cfg.Database.DriverName, cfg.Database.DatabaseURL)
+	if err != nil {
+		slog.Error("failed to open database connection", "error", err)
+		os.Exit(1)
+	}
+	defer db.Close()
 
-	// 3. Initialize Inbound Delivery Adapter (gRPC Handler)
+	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+	db.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime)
+
+	dbPingCtx, dbPingCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	if err := db.PingContext(dbPingCtx); err != nil {
+		dbPingCancel()
+		slog.Error("failed to connect to postgres database", "error", err)
+		os.Exit(1)
+	}
+	dbPingCancel()
+	slog.Info("Connected to PostgreSQL database")
+
+	// 3. Initialize Valkey Queue & Event Adapter
+	vkAdapter, err := valkeyAdapter.NewValkeyAdapter(cfg.Valkey)
+	if err != nil {
+		slog.Error("failed to initialize valkey adapter", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Connected to Valkey instance", "addr", cfg.Valkey.Addr)
+
+	// 4. Initialize Outbound Infrastructure Repositories & Domain Service
+	repo := postgresAdapter.NewPostgresTaskRepository(db)
+	loanService := service.NewLoanService(repo, vkAdapter, vkAdapter)
+
+	// 5. Initialize Inbound Delivery Adapter (gRPC Handler)
 	grpcHandler := grpcAdapter.NewLoanHandler(loanService, loanService)
 
-	// 4. Create and Start gRPC Server
+	// 6. Create and Start gRPC Server
 	lis, err := net.Listen("tcp", defaultGRPCPort) // #nosec G102 -- required for containerized port binding
 	if err != nil {
 		slog.Error("failed to listen on gRPC port", "port", defaultGRPCPort, "error", err)
@@ -61,7 +99,7 @@ func main() {
 		}
 	}()
 
-	// 5. Setup gRPC-Gateway HTTP Reverse Proxy
+	// 7. Setup gRPC-Gateway HTTP Reverse Proxy
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -70,14 +108,13 @@ func main() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	// Local endpoint target for gRPC-Gateway reverse proxy
 	grpcEndpoint := "127.0.0.1" + defaultGRPCPort
 	if err := loanflowv1.RegisterLoanDocumentProcessorServiceHandlerFromEndpoint(ctx, gwMux, grpcEndpoint, opts); err != nil {
 		slog.Error("failed to register gRPC-Gateway handler endpoint", "error", err)
 		os.Exit(1)
 	}
 
-	// 6. Setup HTTP Router (gRPC-Gateway + OpenAPI Docs)
+	// 8. Setup HTTP Router (gRPC-Gateway + OpenAPI Docs)
 	httpMux := http.NewServeMux()
 
 	// Serve OpenAPI/Swagger JSON
@@ -92,10 +129,10 @@ func main() {
 	httpServer := &http.Server{
 		Addr:              defaultHTTPPort,
 		Handler:           httpMux,
-		ReadHeaderTimeout: 5 * time.Second,   // Protects against slow request headers
-		ReadTimeout:       10 * time.Second,  // Max time to read full request
-		WriteTimeout:      10 * time.Second,  // Max time to write response
-		IdleTimeout:       120 * time.Second, // Keep-alive connection idle duration
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	go func() {
@@ -105,7 +142,7 @@ func main() {
 		}
 	}()
 
-	// 7. Graceful Shutdown Signal Handling
+	// 9. Graceful Shutdown Signal Handling
 	stopCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

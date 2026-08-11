@@ -1,0 +1,78 @@
+name: CI Pipeline
+
+on:
+    push:
+        branches: [main, master]
+    pull_request:
+        branches: [main, master]
+
+jobs:
+    test:
+        name: Build & Test
+        runs-on: ubuntu-latest
+
+        # Ephemeral services required for E2E integration tests
+        services:
+            postgres:
+                image: postgres:16-alpine
+                env:
+                    POSTGRES_USER: admin
+                    POSTGRES_PASSWORD: admin
+                    POSTGRES_DB: loanflow_test
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+            valkey:
+                image: valkey/valkey:8-alpine
+                command: valkey-server --requirepass admin --user admin on >admin ~* &* +@all
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd "valkey-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v7
+              with:
+                  go-version-file: "go.mod"
+                  check-latest: true
+                  cache: true
+                  cache-dependency-path: "go.sum"
+
+            - name: Install dependencies
+              run: go mod download
+
+            - name: Run Linters & Static Analysis
+              run: go vet ./...
+
+            - name: Run Unit Tests
+              run: go test -v -race -short ./internal/...
+
+            - name: Apply Database Migrations
+              run: |
+                  migrate -path migrations -database "postgres://admin:admin@localhost:5432/loanflow_test?sslmode=disable" up
+
+            - name: Run E2E Integration Tests
+              env:
+                DB_DRIVER: "postgres"
+                DATABASE_URL: "postgres://admin:admin@localhost:5432/loanflow_test?sslmode=disable"
+                VALKEY_ADDR: "localhost:6379"
+                VALKEY_USERNAME: "admin"
+                VALKEY_PASSWORD: "admin"
+              run: go test -v -race ./tests/e2e/...
+
+            - name: Verify Binary Builds
+              run: |
+                  go build -o /dev/null ./cmd/scheduler
+                  go build -o /dev/null ./cmd/worker
