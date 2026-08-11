@@ -11,17 +11,42 @@ import (
 var (
 	_ outbound.EventPublisher  = (*MemoryEventBroker)(nil)
 	_ outbound.EventSubscriber = (*MemoryEventBroker)(nil)
+	_ outbound.TaskQueue       = (*MemoryEventBroker)(nil)
 )
 
 type MemoryEventBroker struct {
 	mu          sync.RWMutex
 	subscribers map[string][]chan *domain.ProcessingTask
+	queues      map[domain.Priority][]string
 }
 
 func NewMemoryEventBroker() *MemoryEventBroker {
 	return &MemoryEventBroker{
 		subscribers: make(map[string][]chan *domain.ProcessingTask),
+		queues:      make(map[domain.Priority][]string),
 	}
+}
+
+func (b *MemoryEventBroker) EnqueueTask(ctx context.Context, taskID string, priority domain.Priority) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.queues[priority] = append(b.queues[priority], taskID)
+	return nil
+}
+
+func (b *MemoryEventBroker) DequeueTask(ctx context.Context, priority domain.Priority) (string, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	tasks, ok := b.queues[priority]
+	if !ok || len(tasks) == 0 {
+		return "", nil // Queue is empty
+	}
+
+	taskID := tasks[0]
+	b.queues[priority] = tasks[1:]
+	return taskID, nil
 }
 
 func (b *MemoryEventBroker) PublishProgressEvent(ctx context.Context, task *domain.ProcessingTask) error {

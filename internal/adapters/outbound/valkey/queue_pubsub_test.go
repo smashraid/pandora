@@ -9,9 +9,10 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/smashraid/pandora/internal/adapters/outbound/valkey"
 	"github.com/smashraid/pandora/internal/domain"
+	"github.com/smashraid/pandora/pkg/config"
 )
 
-func setupValkeyClient(t *testing.T) *redis.Client {
+func setupValkeyAdapter(t *testing.T) *valkey.ValkeyAdapter {
 	t.Helper()
 
 	addr := os.Getenv("TEST_VALKEY_ADDR")
@@ -19,54 +20,71 @@ func setupValkeyClient(t *testing.T) *redis.Client {
 		addr = "localhost:6379"
 	}
 
-	client := redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Username: "admin",
-		Password: "admin",
+	cfg := config.ValkeyConfig{
+		Addr:         addr,
+		Username:     "admin",
+		Password:     "admin",
+		DB:           0,
+		DialTimeout:  2 * time.Second,
+		ReadTimeout:  2 * time.Second,
+		WriteTimeout: 2 * time.Second,
+		PoolSize:     5,
+	}
+
+	// Helper client to test connectivity and flush DB before running tests
+	flushClient := redis.NewClient(&redis.Options{
+		Addr:     cfg.Addr,
+		Username: cfg.Username,
+		Password: cfg.Password,
+		DB:       cfg.DB,
 	})
 
 	ctx := context.Background()
-	if err := client.Ping(ctx).Err(); err != nil {
+	if err := flushClient.Ping(ctx).Err(); err != nil {
+		_ = flushClient.Close()
 		t.Skipf("skipping test: Valkey instance not reachable at %s: %v", addr, err)
 	}
 
-	// Flush test keys for clean test state
-	_ = client.FlushDB(ctx).Err()
+	_ = flushClient.FlushDB(ctx).Err()
+	_ = flushClient.Close()
 
-	t.Cleanup(func() {
-		_ = client.Close()
-	})
+	adapter, err := valkey.NewValkeyAdapter(cfg)
+	if err != nil {
+		t.Fatalf("failed to initialize Valkey adapter: %v", err)
+	}
 
-	return client
+	return adapter
 }
 
 func TestValkeyAdapter_PriorityQueueing(t *testing.T) {
-	client := setupValkeyClient(t)
-	adapter := valkey.NewValkeyAdapter(client)
+	adapter := setupValkeyAdapter(t)
 	ctx := context.Background()
 
 	// Enqueue standard and high priority tasks
 	_ = adapter.EnqueueTask(ctx, "standard-task-1", domain.PriorityStandard)
 	_ = adapter.EnqueueTask(ctx, "high-task-1", domain.PriorityHigh)
 
-	// High priority task must be popped first
-	dequeuedFirst, err := adapter.DequeueTask(ctx)
+	// Dequeue high priority task
+	dequeuedFirst, err := adapter.DequeueTask(ctx, domain.PriorityHigh)
 	if err != nil {
-		t.Fatalf("failed to dequeue first item: %v", err)
+		t.Fatalf("failed to dequeue high-priority item: %v", err)
 	}
 	if dequeuedFirst != "high-task-1" {
 		t.Errorf("expected high-priority task first, got: %s", dequeuedFirst)
 	}
 
-	dequeuedSecond, _ := adapter.DequeueTask(ctx)
+	// Dequeue standard priority task
+	dequeuedSecond, err := adapter.DequeueTask(ctx, domain.PriorityStandard)
+	if err != nil {
+		t.Fatalf("failed to dequeue standard-priority item: %v", err)
+	}
 	if dequeuedSecond != "standard-task-1" {
 		t.Errorf("expected standard-priority task second, got: %s", dequeuedSecond)
 	}
 }
 
 func TestValkeyAdapter_PubSub(t *testing.T) {
-	client := setupValkeyClient(t)
-	adapter := valkey.NewValkeyAdapter(client)
+	adapter := setupValkeyAdapter(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
