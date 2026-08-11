@@ -45,20 +45,23 @@ func (h *LoanHandler) SubmitApplication(ctx context.Context, req *loanflowv1.Sub
 func (h *LoanHandler) TrackProgress(stream loanflowv1.LoanDocumentProcessorService_TrackProgressServer) error {
 	ctx := stream.Context()
 
-	// Wait for the initial connection frame to obtain subscription task_id
+	// 1. Wait for initial subscription frame from client
 	firstReq, err := stream.Recv()
 	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "failed to receive initial subscription frame: %v", err)
+		if errors.Is(err, io.EOF) {
+			return status.Error(codes.InvalidArgument, "stream closed before sending subscription frame")
+		}
+		return status.Errorf(codes.InvalidArgument, "failed to receive subscription frame: %v", err)
 	}
 
 	subCmd := firstReq.GetSubscribe()
 	if subCmd == nil || subCmd.GetTaskId() == "" {
-		return status.Errorf(codes.InvalidArgument, "first stream payload must contain a valid subscribe command")
+		return status.Error(codes.InvalidArgument, "first stream payload must contain a valid subscribe command")
 	}
 
 	taskID := subCmd.GetTaskId()
 
-	// 1. Send immediate current status update
+	// 2. Fetch and send immediate current task status
 	initialTask, err := h.trackUC.GetTaskStatus(ctx, taskID)
 	if err != nil {
 		if errors.Is(err, domain.ErrTaskNotFound) {
@@ -71,49 +74,63 @@ func (h *LoanHandler) TrackProgress(stream loanflowv1.LoanDocumentProcessorServi
 		return err
 	}
 
-	// 2. Subscribe to progress updates channel
+	// 3. Early return if task is already in a terminal state
+	if initialTask.IsTerminal() {
+		return nil
+	}
+
+	// 4. Subscribe to PubSub task updates channel
 	updatesChan, err := h.trackUC.SubscribeTaskUpdates(ctx, taskID)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to subscribe to task updates: %v", err)
 	}
 
-	// Channel to signal client cancellation or error from the inbound stream reader
+	// Channel to signal client cancellation or error from the inbound stream listener
 	errChan := make(chan error, 1)
 
-	// Goroutine: Listen for client mid-flight CancelCommand requests on incoming stream
+	// 5. Goroutine: Non-blocking client command listener (handles mid-flight CancelCommand)
 	go func() {
 		for {
 			req, err := stream.Recv()
 			if errors.Is(err, io.EOF) {
+				// Client half-closed (stopped sending commands). Keep pushing server updates.
 				return
 			}
 			if err != nil {
-				errChan <- err
+				select {
+				case errChan <- err:
+				default:
+				}
 				return
 			}
 
+			// Process mid-flight cancellation request from client
 			if cancelCmd := req.GetCancel(); cancelCmd != nil {
 				_ = h.trackUC.CancelTask(ctx, cancelCmd.GetTaskId(), cancelCmd.GetReason())
 			}
 		}
 	}()
 
-	// Stream Loop: Forward real-time task progress events to client
+	// 6. Main Server Event Loop: Stream updates to client until task terminates or stream closes
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return status.Error(codes.Canceled, "stream context canceled by client")
+
 		case err := <-errChan:
-			return err
+			return status.Errorf(codes.Canceled, "client stream error: %v", err)
+
 		case task, ok := <-updatesChan:
 			if !ok {
-				return nil
+				return nil // Subscription channel closed
 			}
+
 			if err := stream.Send(ToProtoTrackResponse(task)); err != nil {
 				return err
 			}
+
 			if task.IsTerminal() {
-				return nil
+				return nil // Processing completed/failed/cancelled; cleanly end stream
 			}
 		}
 	}
