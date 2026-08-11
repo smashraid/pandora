@@ -26,12 +26,13 @@ const (
 type ProcessingStage string
 
 const (
-	StageUnspecified       ProcessingStage = "PROCESSING_STAGE_UNSPECIFIED"
-	StageIngestion         ProcessingStage = "PROCESSING_STAGE_INGESTION"
-	StageDocumentOCR       ProcessingStage = "PROCESSING_STAGE_DOCUMENT_OCR"
-	StageCreditBureauCheck ProcessingStage = "PROCESSING_STAGE_CREDIT_BUREAU_CHECK"
-	StageFraudEvaluation   ProcessingStage = "PROCESSING_STAGE_FRAUD_EVALUATION"
-	StageFinalDecision     ProcessingStage = "PROCESSING_STAGE_FINAL_DECISION"
+	StageUnspecified        ProcessingStage = "PROCESSING_STAGE_UNSPECIFIED"
+	StageIngestion          ProcessingStage = "PROCESSING_STAGE_INGESTION"
+	StageDocumentOCR        ProcessingStage = "PROCESSING_STAGE_DOCUMENT_OCR"
+	StageDocumentValidation ProcessingStage = "PROCESSING_STAGE_DOCUMENT_VALIDATION"
+	StageCreditBureauCheck  ProcessingStage = "PROCESSING_STAGE_CREDIT_BUREAU_CHECK"
+	StageFraudEvaluation    ProcessingStage = "PROCESSING_STAGE_FRAUD_EVALUATION"
+	StageFinalDecision      ProcessingStage = "PROCESSING_STAGE_FINAL_DECISION"
 )
 
 type Document struct {
