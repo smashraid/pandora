@@ -7,8 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -106,9 +108,10 @@ func TestE2E_FullLoanProcessingPipeline(t *testing.T) {
 	})
 
 	// 7. Start Background Worker Processor
-	logger := service.NewWorkerProcessor(repo, vkAdapter, vkAdapter, nil) // uses slog default
-	go logger.StartWorker(ctx, 1, domain.PriorityHigh)
-	go logger.StartWorker(ctx, 2, domain.PriorityStandard)
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	workerProc := service.NewWorkerProcessor(repo, vkAdapter, vkAdapter, logger)
+	go workerProc.StartWorker(ctx, 1, domain.PriorityHigh)
+	go workerProc.StartWorker(ctx, 2, domain.PriorityStandard)
 
 	// =========================================================================
 	// STEP 1: Submit Application via HTTP Gateway (REST API)
