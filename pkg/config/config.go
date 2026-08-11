@@ -9,7 +9,7 @@ import (
 
 type DatabaseConfig struct {
 	DriverName      string        `envconfig:"DB_DRIVER" default:"postgres"`
-	DatabaseURL     string        `envconfig:"DATABASE_URL" default:"postgres://postgres:postgres@localhost:5432/pandora?sslmode=disable"`
+	DatabaseURL     string        `envconfig:"DATABASE_URL" default:"postgres://admin:admin@localhost:5432/loanflow_test?sslmode=disable"`
 	MaxOpenConns    int           `envconfig:"DB_MAX_OPEN_CONNS" default:"25"`
 	MaxIdleConns    int           `envconfig:"DB_MAX_IDLE_CONNS" default:"5"`
 	ConnMaxLifetime time.Duration `envconfig:"DB_CONN_MAX_LIFETIME" default:"15m"`
