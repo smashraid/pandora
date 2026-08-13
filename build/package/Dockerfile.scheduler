@@ -1,0 +1,29 @@
+# --- Build Stage ---
+FROM golang:alpine AS builder
+
+WORKDIR /app
+
+RUN apk add --no-cache git ca-certificates
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags="-w -s" \
+    -o /bin/scheduler ./cmd/scheduler
+
+# --- Final Stage ---
+FROM alpine:latest
+
+RUN adduser -D -u 10001 appuser
+USER 10001
+
+WORKDIR /app
+
+COPY --from=builder /bin/scheduler /app/scheduler
+
+EXPOSE 8080 50051
+
+ENTRYPOINT ["/app/scheduler"]
