@@ -1,0 +1,40 @@
+global:
+  environment: production
+
+image:
+  repositoryPrefix: smashraid/pandora
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+config:
+  dbHost: "postgres-service"
+  dbPort: 5432
+  dbName: "pandora"
+  valkeyHost: "valkey-service"
+  valkeyPort: 6379
+
+secrets:
+  dbUser: "postgres"
+  dbPassword: "supersecretpassword"
+
+scheduler:
+  replicaCount: 2
+  httpPort: 8080
+  grpcPort: 50051
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+worker:
+  replicaCount: 4
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
