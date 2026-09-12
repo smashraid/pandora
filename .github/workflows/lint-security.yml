@@ -11,7 +11,7 @@ jobs:
         name: GolangCI-Lint
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
 
             - name: Set up Go
               uses: actions/setup-go@v7
@@ -31,7 +31,7 @@ jobs:
         name: Security AST Scan (Gosec)
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
 
             - name: Run Gosec Security Scanner
               uses: securego/gosec@master
@@ -42,7 +42,7 @@ jobs:
         name: Go Dependency Vulnerability Check
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
 
             - name: Set up Go
               uses: actions/setup-go@v7
